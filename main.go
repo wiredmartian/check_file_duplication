@@ -22,8 +22,8 @@ func main() {
 		fmt.Println(err)
 	}
 	for _, file := range files {
-		fmt.Printf("MD5 File HASH: %x\n", file.fileHash)
-		fmt.Println(file.path)
+		fmt.Printf("%x\n", file.fileHash)
+		// fmt.Println(file.path)
 	}
 }
 
@@ -56,13 +56,15 @@ func getHashedFiles(root string) ([]File, error) {
 			file:     fs[i].file,
 			fileHash: md5.Sum(f),
 		}
-		files = append(files, pFile)
 		for j := 0; j < len(files); j++ {
-			if pFile.fileHash == files[j].fileHash {
-				fmt.Printf("DUPLICATE %v\n", pFile.path)
+			// fmt.Printf("MD5 File HASH: %x\n", files[j].fileHash)
+			// f := fmt.Sprintf("%x", files[j].fileHash)
+			if fmt.Sprintf("%x", pFile.fileHash) == fmt.Sprintf("%x", files[j].fileHash) {
+				fmt.Printf("%v DUPLICATE %v\n", files[j].path, pFile.path)
 				break
 			}
 		}
+		files = append(files, pFile)
 	}
 	return files, err
 }
