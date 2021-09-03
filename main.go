@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/md5"
 	"fmt"
 	"io/ioutil"
@@ -9,7 +10,16 @@ import (
 )
 
 func main() {
-	files, err := getHashedFiles("/home/solomizi/Downloads/wetransfer_imgl8632-jpg_2021-08-06_1930")
+	var input string
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("Enter a file path: ")
+	for scanner.Scan() {
+		input = scanner.Text()
+		break
+	}
+	fmt.Println(input)
+	// "/home/solomizi/Downloads/wetransfer_imgl8632-jpg_2021-08-06_1930"
+	files, err := getHashedFiles(input)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -32,6 +42,9 @@ func getHashedFiles(root string) ([]File, error) {
 				file: info,
 			}
 			fs = append(fs, f)
+		}
+		if err != nil {
+			return err
 		}
 		return nil
 	})
