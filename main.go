@@ -17,8 +17,6 @@ func main() {
 		input = scanner.Text()
 		break
 	}
-	fmt.Println(input)
-	// "/home/solomizi/Downloads/wetransfer_imgl8632-jpg_2021-08-06_1930"
 	files, err := getHashedFiles(input)
 	if err != nil {
 		fmt.Println(err)
@@ -59,6 +57,12 @@ func getHashedFiles(root string) ([]File, error) {
 			fileHash: md5.Sum(f),
 		}
 		files = append(files, pFile)
+		for j := 0; j < len(files); j++ {
+			if pFile.fileHash == files[j].fileHash {
+				fmt.Printf("DUPLICATE %v\n", pFile.path)
+				break
+			}
+		}
 	}
 	return files, err
 }
