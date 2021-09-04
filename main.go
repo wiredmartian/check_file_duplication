@@ -17,23 +17,26 @@ func main() {
 		input = scanner.Text()
 		break
 	}
-	_, err := getHashedFiles(input)
+	_, err := GetHashedFiles(input)
 	if err != nil {
 		fmt.Println(err)
 	}
-	// for _, file := range files {
-	// fmt.Printf("%x\n", file.fileHash)
-	// fmt.Println(file.path)
-	// }
 }
 
-// walk the file dir
+// GetHashedFiles walk the file dir
 // get files exclude dirs
 // hash files
-func getHashedFiles(root string) ([]File, error) {
+func GetHashedFiles(root string) ([]File, error) {
 	var fs []File
 	var files []File
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	var err error
+	_, err = os.Stat(root)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			var f = File{
 				path: path,
@@ -47,7 +50,7 @@ func getHashedFiles(root string) ([]File, error) {
 		return nil
 	})
 	for i := 0; i < len(fs); i++ {
-		f, err := getFile(fs[i].path)
+		f, err := GetFile(fs[i].path)
 		if err != nil {
 			return nil, err
 		}
@@ -58,8 +61,6 @@ func getHashedFiles(root string) ([]File, error) {
 		}
 		colorReset := "\033[0m"
 		colorRed := "\033[31m"
-
-		fmt.Printf("%v\n", pFile.path)
 
 		for j := 0; j < len(files); j++ {
 			if fmt.Sprintf("%x", pFile.fileHash) == fmt.Sprintf("%x", files[j].fileHash) {
@@ -75,8 +76,8 @@ func getHashedFiles(root string) ([]File, error) {
 	return files, err
 }
 
-// get file bytes from path
-func getFile(filepath string) ([]byte, error) {
+// GetFile get file bytes from path
+func GetFile(filepath string) ([]byte, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, err
