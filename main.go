@@ -77,8 +77,16 @@ func GetHashedFiles(root string) ([]File, error) {
 }
 
 // GetFile get file bytes from path
-func GetFile(filepath string) ([]byte, error) {
-	file, err := ioutil.ReadFile(filepath)
+func GetFile(fpath string) ([]byte, error) {
+	var err error
+	info, err := os.Stat(fpath)
+	if err != nil {
+		return nil, err
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("path is a directory")
+	}
+	file, err := ioutil.ReadFile(fpath)
 	if err != nil {
 		return nil, err
 	}
