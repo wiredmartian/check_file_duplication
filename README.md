@@ -8,3 +8,5 @@ Recursively walks through a directory, and it's sub-directories finding duplicat
 `$ go run main.go`
 
 Provide a path to traverse.
+
+> Enter a file path: /wiredmartian/downloads
