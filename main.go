@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/md5"
 	"fmt"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,9 +18,13 @@ func main() {
 		input = scanner.Text()
 		break
 	}
-	_, err := GetHashedFiles(input)
+	files, err := GetHashedFiles(input)
 	if err != nil {
 		fmt.Println(err)
+	}
+	err = WriteResults(files)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 }
 
@@ -59,15 +64,12 @@ func GetHashedFiles(root string) ([]File, error) {
 			file:     fs[i].file,
 			fileHash: md5.Sum(f),
 		}
-		colorReset := "\033[0m"
-		colorRed := "\033[31m"
 
 		for j := 0; j < len(files); j++ {
 			if fmt.Sprintf("%x", pFile.fileHash) == fmt.Sprintf("%x", files[j].fileHash) {
-				fmt.Print(colorRed)
-				fmt.Printf("%v\n", files[j].path)
-				fmt.Printf("%v\n", pFile.path)
-				fmt.Print(colorReset)
+				pFile.duplicated = true
+				files[j].duplicated = true
+				fmt.Printf("%v (DUPLICATE)\n", pFile.path)
 				break
 			}
 		}
@@ -93,8 +95,37 @@ func GetFile(fpath string) ([]byte, error) {
 	return file, nil
 }
 
+// WriteResults write report to a text file
+func WriteResults(files []File) error {
+	var err error
+	txtPath := fmt.Sprintf("./outputs/%v.txt", timestamppb.Now().Seconds)
+	textF, err := os.OpenFile(txtPath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err := os.MkdirAll(txtPath, os.ModePerm)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	// todo return only duplicated files
+	for _, f := range files {
+		if f.duplicated {
+			_, err := textF.WriteString(f.path + "\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	textF.Close()
+	return nil
+}
+
 type File struct {
-	path     string
-	file     os.FileInfo
-	fileHash [16]byte
+	path       string
+	file       os.FileInfo
+	fileHash   [16]byte
+	duplicated bool
 }

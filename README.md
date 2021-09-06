@@ -2,6 +2,8 @@
 
 Recursively walks through a directory, and it's sub-directories finding duplicate files.
 
+Outputs duplicate file paths to a text file
+
 
 ## Running
 
