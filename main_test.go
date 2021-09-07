@@ -27,7 +27,7 @@ func TestEmptyDir(t *testing.T) {
 }
 
 func TestGetHashedFiles(t *testing.T) {
-	fs, err := GetHashedFiles("./test")
+	fs, _, err := GetHashedFiles("./test")
 	if err != nil {
 		t.Fatalf("test failed: expected []File, received: %v", err.Error())
 	}
