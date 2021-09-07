@@ -18,11 +18,11 @@ func main() {
 		input = scanner.Text()
 		break
 	}
-	files, err := GetHashedFiles(input)
+	_, duplicates, err := GetHashedFiles(input)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = WriteResults(files)
+	err = WriteResults(duplicates)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -31,14 +31,15 @@ func main() {
 // GetHashedFiles walk the file dir
 // get files exclude dirs
 // hash files
-func GetHashedFiles(root string) ([]File, error) {
+func GetHashedFiles(root string) ([]File, map[int]string, error) {
+	var err error
 	var fs []File
 	var files []File
-	var err error
+	duplicates := make(map[int]string)
 	_, err = os.Stat(root)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -54,10 +55,11 @@ func GetHashedFiles(root string) ([]File, error) {
 		}
 		return nil
 	})
+	count := 0
 	for i := 0; i < len(fs); i++ {
 		f, err := GetFile(fs[i].path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		var pFile = File{
 			path:     fs[i].path,
@@ -66,16 +68,21 @@ func GetHashedFiles(root string) ([]File, error) {
 		}
 
 		for j := 0; j < len(files); j++ {
-			if fmt.Sprintf("%x", pFile.fileHash) == fmt.Sprintf("%x", files[j].fileHash) {
-				pFile.duplicated = true
-				files[j].duplicated = true
+			newFHashStr := fmt.Sprintf("%x", pFile.fileHash)
+			fHashStr := fmt.Sprintf("%x", files[j].fileHash)
+			if fHashStr == newFHashStr {
+				duplicates[count] = pFile.path
+				count++
+				duplicates[count] = files[j].path
 				fmt.Printf("%v (DUPLICATE)\n", pFile.path)
+				fmt.Printf("%v (DUPLICATE)\n", files[j].path)
+				count++
 				break
 			}
 		}
 		files = append(files, pFile)
 	}
-	return files, err
+	return files, duplicates, err
 }
 
 // GetFile get file bytes from path
@@ -96,36 +103,34 @@ func GetFile(fpath string) ([]byte, error) {
 }
 
 // WriteResults write report to a text file
-func WriteResults(files []File) error {
-	var err error
-	txtPath := fmt.Sprintf("./outputs/%v.txt", timestamppb.Now().Seconds)
-	textF, err := os.OpenFile(txtPath, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err := os.MkdirAll(txtPath, os.ModePerm)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-	// todo return only duplicated files
-	for _, f := range files {
-		if f.duplicated {
-			_, err := textF.WriteString(f.path + "\n")
-			if err != nil {
+func WriteResults(files map[int]string) error {
+	if len(files) != 0 {
+		var err error
+		txtPath := fmt.Sprintf("./outputs/%v.txt", timestamppb.Now().Seconds)
+		textF, err := os.OpenFile(txtPath, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			if os.IsNotExist(err) {
+				err := os.MkdirAll(txtPath, os.ModePerm)
+				if err != nil {
+					return err
+				}
+			} else {
 				return err
 			}
 		}
+		for _, f := range files {
+			_, err := textF.WriteString(f + "\n")
+			if err != nil {
+				return err
+			}
+		}
+		textF.Close()
 	}
-	textF.Close()
 	return nil
 }
 
 type File struct {
-	path       string
-	file       os.FileInfo
-	fileHash   [16]byte
-	duplicated bool
+	path     string
+	file     os.FileInfo
+	fileHash [16]byte
 }
