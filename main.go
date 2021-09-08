@@ -128,7 +128,7 @@ func WriteResults(files map[int]string) error {
 				return err
 			}
 		}
-		textF.Close()
+		_ = textF.Close()
 	}
 	return nil
 }
