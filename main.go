@@ -18,6 +18,7 @@ func main() {
 		input = scanner.Text()
 		break
 	}
+	fmt.Println(timestamppb.Now().AsTime().Local())
 	_, duplicates, err := GetHashedFiles(input)
 	if err != nil {
 		fmt.Println(err)
@@ -26,6 +27,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	fmt.Println(timestamppb.Now().AsTime().Local())
 }
 
 // GetHashedFiles walk the file dir
@@ -106,17 +108,19 @@ func GetFile(fpath string) ([]byte, error) {
 func WriteResults(files map[int]string) error {
 	if len(files) != 0 {
 		var err error
+		_, err = os.Stat("./outputs/")
+		if err != nil {
+			if os.IsNotExist(err) {
+				err = os.Mkdir("./outputs/", os.ModePerm)
+			} else {
+				// don't know
+				return err
+			}
+		}
 		txtPath := fmt.Sprintf("./outputs/%v.txt", timestamppb.Now().Seconds)
 		textF, err := os.OpenFile(txtPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			if os.IsNotExist(err) {
-				err := os.MkdirAll(txtPath, os.ModePerm)
-				if err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
+			return err
 		}
 		for _, f := range files {
 			_, err := textF.WriteString(f + "\n")
