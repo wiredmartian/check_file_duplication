@@ -11,4 +11,4 @@ Outputs duplicate file paths to a text file
 
 Provide a path to traverse.
 
-> Enter a file path: /wiredmartian/downloads
+> Enter a file path: /home/wiredmartian/downloads
