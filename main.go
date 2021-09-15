@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 func main() {
@@ -28,10 +29,13 @@ func main() {
 		duplicates[i] = path
 		i++
 	}
-	err := WriteResults(duplicates)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		WriteResults(duplicates)
+	}()
+	wg.Wait()
 	fmt.Println(timestamppb.Now().AsTime().Local())
 }
 
@@ -104,32 +108,33 @@ func GetFile(fpath string) ([]byte, error) {
 }
 
 // WriteResults write report to a text file
-func WriteResults(files map[int]string) error {
+func WriteResults(files map[int]string) {
 	if len(files) != 0 {
 		var err error
 		_, err = os.Stat("./outputs/")
 		if err != nil {
 			if os.IsNotExist(err) {
 				err = os.Mkdir("./outputs/", os.ModePerm)
+				if err != nil {
+					log.Fatal(err.Error())
+				}
 			} else {
-				// don't know
-				return err
+				log.Fatal(err.Error())
 			}
 		}
 		txtPath := fmt.Sprintf("./outputs/%v.txt", timestamppb.Now().Seconds)
 		textF, err := os.OpenFile(txtPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return err
+			log.Fatal(err.Error())
 		}
 		for _, f := range files {
 			_, err := textF.WriteString(f + "\n")
 			if err != nil {
-				return err
+				log.Fatal(err.Error())
 			}
 		}
 		_ = textF.Close()
 	}
-	return nil
 }
 
 type File struct {
