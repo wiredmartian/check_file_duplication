@@ -27,11 +27,13 @@ func TestEmptyDir(t *testing.T) {
 }
 
 func TestGetHashedFiles(t *testing.T) {
-	fs, _, err := GetHashedFiles("./test")
-	if err != nil {
-		t.Fatalf("test failed: expected []File, received: %v", err.Error())
+	c := make(chan string)
+	go ProcessDuplicates("./test", c)
+	duplicates := 0
+	for range c {
+		duplicates++
 	}
-	if fs == nil || len(fs) != 8 {
-		t.Errorf("test failed: expected 8 []File, received: %v", len(fs))
+	if duplicates != 4 {
+		t.Errorf("test failed: expected 8 []File, received: %v", duplicates)
 	}
 }

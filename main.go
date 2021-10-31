@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 func main() {
 	var input string
+	c := make(chan string)
+	duplicates := make(map[int]string)
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("Enter a file path: ")
 	for scanner.Scan() {
@@ -19,29 +23,29 @@ func main() {
 		break
 	}
 	fmt.Println(timestamppb.Now().AsTime().Local())
-	_, duplicates, err := GetHashedFiles(input)
-	if err != nil {
-		fmt.Println(err)
+	go ProcessDuplicates(input, c)
+	i := 0
+	for path := range c {
+		duplicates[i] = path
+		i++
 	}
-	err = WriteResults(duplicates)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		WriteResults(duplicates)
+	}()
+	wg.Wait()
 	fmt.Println(timestamppb.Now().AsTime().Local())
 }
 
-// GetHashedFiles walk the file dir
-// get files exclude dirs
-// hash files
-func GetHashedFiles(root string) ([]File, map[int]string, error) {
+func ProcessDuplicates(root string, c chan string) {
 	var err error
 	var fs []File
 	var files []File
-	duplicates := make(map[int]string)
 	_, err = os.Stat(root)
-
 	if err != nil {
-		return nil, nil, err
+		log.Fatalf(err.Error())
 	}
 
 	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -57,11 +61,13 @@ func GetHashedFiles(root string) ([]File, map[int]string, error) {
 		}
 		return nil
 	})
-	count := 0
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 	for i := 0; i < len(fs); i++ {
 		f, err := GetFile(fs[i].path)
 		if err != nil {
-			return nil, nil, err
+			fmt.Println(err.Error())
 		}
 		var pFile = File{
 			path:     fs[i].path,
@@ -73,18 +79,15 @@ func GetHashedFiles(root string) ([]File, map[int]string, error) {
 			newFHashStr := fmt.Sprintf("%x", pFile.fileHash)
 			fHashStr := fmt.Sprintf("%x", files[j].fileHash)
 			if fHashStr == newFHashStr {
-				duplicates[count] = pFile.path
-				count++
-				duplicates[count] = files[j].path
-				fmt.Printf("%v (DUPLICATE)\n", pFile.path)
-				fmt.Printf("%v (DUPLICATE)\n", files[j].path)
-				count++
+				c <- files[j].path
+				c <- pFile.path // maybe??
+				fmt.Println(files[j].path)
 				break
 			}
 		}
 		files = append(files, pFile)
 	}
-	return files, duplicates, err
+	close(c)
 }
 
 // GetFile get file bytes from path
@@ -105,32 +108,33 @@ func GetFile(fpath string) ([]byte, error) {
 }
 
 // WriteResults write report to a text file
-func WriteResults(files map[int]string) error {
+func WriteResults(files map[int]string) {
 	if len(files) != 0 {
 		var err error
 		_, err = os.Stat("./outputs/")
 		if err != nil {
 			if os.IsNotExist(err) {
 				err = os.Mkdir("./outputs/", os.ModePerm)
+				if err != nil {
+					log.Fatal(err.Error())
+				}
 			} else {
-				// don't know
-				return err
+				log.Fatal(err.Error())
 			}
 		}
 		txtPath := fmt.Sprintf("./outputs/%v.txt", timestamppb.Now().Seconds)
 		textF, err := os.OpenFile(txtPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return err
+			log.Fatal(err.Error())
 		}
 		for _, f := range files {
 			_, err := textF.WriteString(f + "\n")
 			if err != nil {
-				return err
+				log.Fatal(err.Error())
 			}
 		}
 		_ = textF.Close()
 	}
-	return nil
 }
 
 type File struct {
