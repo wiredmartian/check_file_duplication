@@ -1,6 +1,6 @@
 ## DUPLICATE FILES CHECK
 
-Recursively walks through a directory, and it's sub-directories finding duplicate files.
+Recursively walks through a directory, and it's sub-directories finding duplicate files. Takes advantage of <b>go concurrency</b>
 
 Outputs duplicate file paths to a text file
 
